@@ -7,6 +7,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(BASE_DIR, "vybe.db"))
 app = Flask(__name__)
+print("APP ROOT:", app.root_path)
+print("ROOT FILES:", os.listdir(app.root_path))
+
+template_path = os.path.join(app.root_path, "templates")
+print("TEMPLATES EXISTS:", os.path.isdir(template_path))
+print("TEMPLATE FILES:", os.listdir(template_path) if os.path.isdir(template_path) else "MISSING")
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32)
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 

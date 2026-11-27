@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "vybe.db")
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "change-this-vybe-secret-before-deployment")
+app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32)
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
 def db():
@@ -69,13 +69,28 @@ def init_db():
       created_at TEXT NOT NULL
     );
     """)
-    # A local demo admin is created once. Change its password before public deployment.
-    exists = conn.execute("SELECT id FROM users WHERE email=?", ("admin@vybe.local",)).fetchone()
-    if not exists:
-        conn.execute(
-            "INSERT INTO users(name,email,password_hash,role,created_at) VALUES(?,?,?,?,?)",
-            ("VYBE Admin", "admin@vybe.local", generate_password_hash("Admin@123"), "admin", datetime.now().isoformat(timespec="seconds"))
-        )
+   
+    # Create admin only when secure credentials are provided through environment variables.
+    admin_email = os.environ.get("ADMIN_EMAIL")
+    admin_password = os.environ.get("ADMIN_PASSWORD")
+
+    if admin_email and admin_password:
+        exists = conn.execute(
+            "SELECT id FROM users WHERE email=?", (admin_email,)
+        ).fetchone()
+
+        if not exists:
+            conn.execute(
+                "INSERT INTO users(name,email,password_hash,role,created_at) VALUES(?,?,?,?,?)",
+                (
+                    "VYBE Admin",
+                    admin_email,
+                    generate_password_hash(admin_password),
+                    "admin",
+                    datetime.now().isoformat(timespec="seconds")
+                )
+            )
+
     conn.commit()
     conn.close()
 
@@ -455,4 +470,4 @@ with app.app_context():
     init_db()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
